@@ -1,3 +1,4 @@
+# Base requirements
 streamlit>=1.29.0
 supabase>=1.0.3
 openai>=1.6.0
@@ -8,3 +9,10 @@ matplotlib>=3.4.0
 plotly>=5.8.0
 scikit-learn>=1.0.0
 pillow>=9.0.0
+
+# Additional requirements for this application
+wordcloud>=1.9.0
+urllib3>=2.0.0
+requests>=2.25.0
+python-dateutil>=2.8.0
+jsonschema>=4.0.0
