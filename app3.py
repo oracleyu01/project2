@@ -6,7 +6,7 @@ from supabase import create_client
 from openai import OpenAI
 
 # 페이지 구성
-st.set_page_config(page_title="안성탕면 시맨틱 검색", layout="wide")
+st.set_page_config(page_title="네이버 블로그그 시맨틱 검색", layout="wide")
 
 # Streamlit에서 실행 중인지 확인하고 secrets 가져오기
 try:
@@ -126,7 +126,7 @@ def generate_answer_with_gpt(query, search_results):
         context_text = "\n".join(contexts)
         
         # GPT 프롬프트 작성
-        prompt = f"""다음은 안성탕면에 관한 블로그 글들입니다:
+        prompt = f"""다음은 네이버 블로그에 관한 블로그 글들입니다:
 
 {context_text}
 
@@ -140,7 +140,7 @@ def generate_answer_with_gpt(query, search_results):
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "당신은 네이버 블로그그 관한 정보를 제공하는 도우미입니다. 주어진 문서들의 내용을 기반으로 질문에 답변해주세요."},
+                {"role": "system", "content": "당신은 네이버 블로그 관한 정보를 제공하는 도우미입니다. 주어진 문서들의 내용을 기반으로 질문에 답변해주세요."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,  # 일관성 있는 답변을 위해 낮은 온도 설정
