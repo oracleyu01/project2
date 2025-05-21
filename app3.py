@@ -121,26 +121,40 @@ def generate_answer_with_gpt(query, search_results):
             content = result['content']
             metadata = result.get('metadata', {})
             title = metadata.get('title', '제목 없음')
-            contexts.append(f"문서 {i+1} - {title}:\n{content}\n")
+            source_type = metadata.get('collection', '블로그')  # 소스 타입 (블로그, 쇼핑, 뉴스)
+            date = metadata.get('date', '')  # 날짜 정보가 있으면 추가
+            
+            # 날짜 정보가 있으면 포함
+            date_info = f" (작성일: {date})" if date else ""
+            
+            # 출처 유형과 함께 컨텍스트 추가
+            contexts.append(f"문서 {i+1} - [{source_type}] {title}{date_info}:\n{content}\n")
         
         context_text = "\n".join(contexts)
         
-        # GPT 프롬프트 작성
-        prompt = f"""다음은 네이버 블로그에 관한 블로그 글들입니다:
+        # GPT 프롬프트 작성 - 개선된 버전
+        prompt = f"""다음은 네이버에서 수집한 블로그, 쇼핑, 뉴스 데이터입니다:
 
 {context_text}
 
 위 내용을 바탕으로 다음 질문에 상세히 답변해주세요: 
 "{query}"
 
-답변은 한국어로 작성해주시고, 위 문서들의 내용만 사용하여 답변해주세요. 문서에 없는 내용은 답변하지 말고, 관련 정보가 부족하면 솔직히 말씀해주세요.
+답변 작성 규칙:
+1. 한국어로 자연스럽게 답변해주세요.
+2. 제공된 문서 내용만 사용하여 사실에 기반한 답변을 작성해주세요.
+3. 문서에 없는 내용은 추측하거나 답변하지 마세요.
+4. 여러 문서 간에 상충되는 정보가 있다면 이를 언급해주세요.
+5. 답변에 적절한 정보가 부족하다면 솔직하게 말씀해주세요.
+6. 답변은 논리적인 구조로 정리하여 사용자가 이해하기 쉽게 작성해주세요.
+7. 필요한 경우 정보의 출처를 언급해주세요(예: "문서 2에 따르면...").
 """
 
-        # GPT-4o-mini로 답변 생성
+        # GPT-4o-mini로 답변 생성 - 개선된 시스템 프롬프트
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "당신은 네이버 블로그 관한 정보를 제공하는 도우미입니다. 주어진 문서들의 내용을 기반으로 질문에 답변해주세요."},
+                {"role": "system", "content": "당신은 네이버 검색 데이터를 기반으로 정확하고 유용한 정보를 제공하는 도우미입니다. 블로그, 쇼핑, 뉴스 등 다양한 소스의 정보를 종합하여 사용자 질문에 맞는 최적의 답변을 제공하세요. 문서에 없는 내용은 추가하지 말고 정확한 사실만 전달하세요."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,  # 일관성 있는 답변을 위해 낮은 온도 설정
@@ -187,7 +201,7 @@ if st.button("검색", key="search_button"):
                         gpt_answer = generate_answer_with_gpt(query, results)
                         
                         # 답변 표시
-                        st.markdown("## GPT 답변")
+                        st.markdown("## AI 답변")
                         st.markdown(gpt_answer)
                         
                         # 구분선
