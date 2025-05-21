@@ -140,7 +140,7 @@ def generate_answer_with_gpt(query, search_results):
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "당신은 안성탕면에 관한 정보를 제공하는 도우미입니다. 주어진 문서들의 내용을 기반으로 질문에 답변해주세요."},
+                {"role": "system", "content": "당신은 네이버 블로그그 관한 정보를 제공하는 도우미입니다. 주어진 문서들의 내용을 기반으로 질문에 답변해주세요."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,  # 일관성 있는 답변을 위해 낮은 온도 설정
@@ -154,8 +154,8 @@ def generate_answer_with_gpt(query, search_results):
         return "답변 생성 중 오류가 발생했습니다."
 
 # 메인 UI
-st.title("안성탕면 블로그 시맨틱 검색 & 질의응답")
-st.write("Supabase 벡터 데이터베이스에 저장된 안성탕면 관련 블로그 데이터를 검색하고 질문에 답변합니다.")
+st.title("네이버 블로그 시맨틱 검색 & 질의응답")
+st.write("Supabase 벡터 데이터베이스에 저장된 네이버 블로그 데이터를 검색하고 질문에 답변합니다.")
 
 # 검색 설정 UI
 st.sidebar.title("검색 설정")
@@ -183,7 +183,7 @@ if st.button("검색", key="search_button"):
                     st.success(f"{len(results)}개의 결과를 찾았습니다.")
                     
                     # GPT로 답변 생성
-                    with st.spinner("GPT로 답변 생성 중..."):
+                    with st.spinner("AI 에이전트 답변 생성 중..."):
                         gpt_answer = generate_answer_with_gpt(query, results)
                         
                         # 답변 표시
