@@ -102,38 +102,53 @@ def search_naver_api(query, source_type, count=20):
             # 결과 처리 및 Supabase에 저장
             saved_count = 0
             for i, item in enumerate(response_data.get('items', [])):
-                # HTML 태그 제거
+                # HTML 태그 제거 및 특수문자 처리
                 title = re.sub('<[^<]+?>', '', item.get('title', ''))
+                title = title.replace('"', "'").replace('\\', '').strip()
                 
                 # 소스 타입에 따른 내용 필드 추출
                 if source_type == "블로그":
                     content = re.sub('<[^<]+?>', '', item.get('description', ''))
+                    content = content.replace('"', "'").replace('\\', '').strip()
                     metadata = {
                         'title': title,
-                        'url': item.get('link', ''),
-                        'bloggername': item.get('bloggername', ''),
+                        'url': item.get('link', '').replace('"', '').replace('\\', ''),
+                        'bloggername': item.get('bloggername', '').replace('"', "'"),
                         'date': item.get('postdate', ''),
                         'collection': source_type
                     }
                 elif source_type == "뉴스":
                     content = re.sub('<[^<]+?>', '', item.get('description', ''))
+                    content = content.replace('"', "'").replace('\\', '').strip()
+                    # 뉴스 데이터 특별 처리
+                    pub_date = item.get('pubDate', '')
+                    if pub_date:
+                        # RFC 2822 날짜 형식을 간단한 형식으로 변환
+                        try:
+                            from datetime import datetime
+                            parsed_date = datetime.strptime(pub_date, '%a, %d %b %Y %H:%M:%S %z')
+                            pub_date = parsed_date.strftime('%Y-%m-%d')
+                        except:
+                            pub_date = pub_date[:10]  # 처음 10자리만 사용
+                    
                     metadata = {
                         'title': title,
-                        'url': item.get('link', ''),
-                        'publisher': item.get('publisher', ''),
-                        'date': item.get('pubDate', ''),
+                        'url': item.get('originallink', item.get('link', '')).replace('"', '').replace('\\', ''),
+                        'publisher': item.get('publisher', '').replace('"', "'"),
+                        'date': pub_date,
                         'collection': source_type
                     }
                 elif source_type == "쇼핑":
                     content = f"{title}. " + re.sub('<[^<]+?>', '', item.get('category3', ''))
+                    content = content.replace('"', "'").replace('\\', '').strip()
                     metadata = {
                         'title': title,
-                        'url': item.get('link', ''),
+                        'url': item.get('link', '').replace('"', '').replace('\\', ''),
                         'lprice': item.get('lprice', ''),
                         'hprice': item.get('hprice', ''),
-                        'mallname': item.get('mallName', ''),
-                        'maker': item.get('maker', ''),
-                        'brand': item.get('brand', ''),
+                        'mallname': item.get('mallName', '').replace('"', "'"),
+                        'maker': item.get('maker', '').replace('"', "'"),
+                        'brand': item.get('brand', '').replace('"', "'"),
                         'collection': source_type
                     }
                 
@@ -151,24 +166,26 @@ def search_naver_api(query, source_type, count=20):
                         'metadata': metadata
                     }
                     
-                    # 이미 존재하는지 확인
-                    # (URL 기반으로 중복 체크, 쇼핑은 상품 ID와 몰 이름으로 중복 체크)
-                    check_field = 'url'
-                    check_value = metadata.get('url', '')
-                    
-                    if source_type == "쇼핑" and 'productId' in item:
-                        check_field = 'productId'
-                        check_value = item.get('productId', '')
-                    
-                    # 중복 체크 쿼리 (메타데이터 내 필드 체크)
-                    existing = supabase.table('documents').select('id').eq(f"metadata->{check_field}", check_value).execute()
-                    
-                    if not existing.data:  # 중복이 없을 경우에만 삽입
+                    # URL 기반 중복 체크
+                    check_url = metadata.get('url', '')
+                    if check_url:
+                        # 중복 체크 쿼리
+                        existing = supabase.table('documents').select('id').eq('metadata->>url', check_url).execute()
+                        
+                        if not existing.data:  # 중복이 없을 경우에만 삽입
+                            result = supabase.table('documents').insert(data).execute()
+                            saved_count += 1
+                            print(f"저장 성공: {title[:30]}...")
+                        else:
+                            print(f"중복 건너뜀: {title[:30]}...")
+                    else:
+                        # URL이 없는 경우에도 저장
                         result = supabase.table('documents').insert(data).execute()
                         saved_count += 1
                     
                 except Exception as e:
-                    st.warning(f"항목 저장 중 오류: {str(e)}")
+                    print(f"항목 저장 중 오류: {str(e)}")
+                    st.warning(f"항목 저장 중 오류: {title[:30]}... - {str(e)}")
             
             return response_data.get('items', []), response_data.get('total', 0), saved_count
         else:
@@ -178,7 +195,6 @@ def search_naver_api(query, source_type, count=20):
     except Exception as e:
         st.error(f"네이버 검색 중 오류 발생: {str(e)}")
         return [], 0, 0
-
 def semantic_search(query_text, source_type="블로그", limit=10, match_threshold=0.5):
     """시맨틱 검색 수행"""
     try:
